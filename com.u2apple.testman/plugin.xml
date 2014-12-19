@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.actionSets">
+      <actionSet
+            label="Test Action Set"
+            visible="true"
+            id="com.u2apple.testman.actionSet">
+         <menu
+               label="Test"
+               id="testMenu">
+            <separator
+                  name="sampleGroup">
+            </separator>
+         </menu>
+         <action
+               label="&amp;Add Test Case"
+               icon="icons/test.png"
+               class="com.u2apple.testman.actions.TestCaseAction"
+               tooltip="Generate test case"
+               menubarPath="testMenu/sampleGroup"
+               toolbarPath="sampleGroup"
+               id="com.u2apple.testman.actions.TestCaseAction">
+         </action>
+      </actionSet>
+   </extension>
+
+</plugin>

@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Testman
+Bundle-SymbolicName: com.u2apple.testman;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: com.u2apple.testman.Activator
+Bundle-Vendor: U2APPLE
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.jdt.core;bundle-version="3.9.2",
+ org.eclipse.jdt.ui;bundle-version="3.9.2",
+ org.eclipse.core.resources;bundle-version="3.8.101",
+ org.eclipse.jface.text;bundle-version="3.9.1"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-ActivationPolicy: lazy
