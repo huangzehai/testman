@@ -18,7 +18,6 @@ import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
-import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.MalformedTreeException;
@@ -75,8 +74,6 @@ public class UnitTestTool {
 		// modify the AST
 		TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
 				.types().get(0);
-		// SimpleName newName = astRoot.getAST().newSimpleName("Y");
-		// typeDeclaration.setName(newName);
 
 		AST ast = compilationUnit.getAST();
 
@@ -116,6 +113,12 @@ public class UnitTestTool {
 
 		// update of the compilation unit
 		this.icomilationUnit.getBuffer().setContents(newSource);
+		
+		  // Commit changes
+		icomilationUnit.commitWorkingCopy(false, null);
+	    
+	    // Destroy working copy
+		icomilationUnit.discardWorkingCopy();
 
 	}
 

@@ -1,7 +1,7 @@
 package com.u2apple.testman.actions;
 
 import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.IJavaElement;
+import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelection;
@@ -39,14 +39,33 @@ public class TestCaseAction implements IWorkbenchWindowActionDelegate {
 	public void run(IAction action) {
 		ISelectionService service = window.getSelectionService();
 		ISelection selection = service.getSelection();
-		Object element = ((IStructuredSelection) selection).getFirstElement();
-		if (element instanceof IJavaElement) {
-			ICompilationUnit icompilationUnit = (ICompilationUnit) element;
-			UnitTestTool tool = new UnitTestTool(icompilationUnit);
-			tool.generateTestCase();
+		if (selection instanceof IStructuredSelection) {
+			Object element = ((IStructuredSelection) selection)
+					.getFirstElement();
+			if (element instanceof ICompilationUnit) {
+				ICompilationUnit icompilationUnit = (ICompilationUnit) element;
+
+				// boolean isWorkingCopy = icompilationUnit.isWorkingCopy();
+				ICompilationUnit workingCopy;
+				try {
+					workingCopy = icompilationUnit.getWorkingCopy(null);
+					UnitTestTool tool = new UnitTestTool(workingCopy);
+					tool.generateTestCase();
+				} catch (JavaModelException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			} else {
+				MessageDialog
+						.openInformation(window.getShell(), "Testman",
+								"Select a Java Test case file and then generate test case.");
+
+			}
+
 		} else {
-			MessageDialog.openInformation(window.getShell(), "Testman",
-					"Select a Java Test case First.");
+			MessageDialog
+					.openInformation(window.getShell(), "Testman",
+							"Select a Java Test case file and then generate test case.");
 		}
 	}
 
