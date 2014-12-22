@@ -2,13 +2,18 @@ package com.u2apple.testman.actions;
 
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.ui.IWorkingCopyManager;
+import org.eclipse.jdt.ui.JavaUI;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.ISelectionService;
+import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchWindowActionDelegate;
+import org.eclipse.ui.PlatformUI;
 
 import com.u2apple.testman.testcase.UnitTestTool;
 
@@ -37,36 +42,58 @@ public class TestCaseAction implements IWorkbenchWindowActionDelegate {
 	 */
 	@Override
 	public void run(IAction action) {
-		ISelectionService service = window.getSelectionService();
-		ISelection selection = service.getSelection();
-		if (selection instanceof IStructuredSelection) {
-			Object element = ((IStructuredSelection) selection)
-					.getFirstElement();
-			if (element instanceof ICompilationUnit) {
-				ICompilationUnit icompilationUnit = (ICompilationUnit) element;
+		IWorkbenchPage activePage = PlatformUI.getWorkbench()
+				.getActiveWorkbenchWindow().getActivePage();
+		IEditorPart activeEditor = activePage.getActiveEditor();
+		ICompilationUnit unit = null;
+		if (activeEditor != null && activeEditor.getEditorInput() != null) {
+			IWorkingCopyManager manager = JavaUI.getWorkingCopyManager();
+			unit = manager.getWorkingCopy(activeEditor.getEditorInput());
+		}
 
-				// boolean isWorkingCopy = icompilationUnit.isWorkingCopy();
-				ICompilationUnit workingCopy;
-				try {
-					workingCopy = icompilationUnit.getWorkingCopy(null);
-					UnitTestTool tool = new UnitTestTool(workingCopy);
-					tool.generateTestCase();
-				} catch (JavaModelException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+		ICompilationUnit workingCopy = null;
+		if (unit == null) {
+			ISelectionService service = window.getSelectionService();
+			ISelection selection = service.getSelection();
+			if (selection instanceof IStructuredSelection) {
+				Object element = ((IStructuredSelection) selection)
+						.getFirstElement();
+				if (element instanceof ICompilationUnit) {
+					ICompilationUnit icompilationUnit = (ICompilationUnit) element;
+					// boolean isWorkingCopy = icompilationUnit.isWorkingCopy();
+					try {
+						workingCopy = icompilationUnit.getWorkingCopy(null);
+					} catch (JavaModelException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+				} else {
+					MessageDialog
+							.openInformation(window.getShell(), "Testman",
+									"Select a Java Test case file and then generate test case.");
+
 				}
+
 			} else {
 				MessageDialog
 						.openInformation(window.getShell(), "Testman",
 								"Select a Java Test case file and then generate test case.");
-
 			}
-
 		} else {
-			MessageDialog
-					.openInformation(window.getShell(), "Testman",
-							"Select a Java Test case file and then generate test case.");
+			try {
+				workingCopy = unit.getWorkingCopy(null);
+			} catch (JavaModelException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
+
+		if (workingCopy != null) {
+			UnitTestTool tool = new UnitTestTool(workingCopy);
+			tool.generateTestCase();
+		}
+
 	}
 
 	/**
