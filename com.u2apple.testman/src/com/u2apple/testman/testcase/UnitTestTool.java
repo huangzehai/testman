@@ -33,6 +33,7 @@ public class UnitTestTool {
 	}
 
 	public void generateTestCase() {
+
 		try {
 			// addTestCase();
 			// boolean hasMethod = hasMethod("samsung-t2556test");
@@ -41,7 +42,12 @@ public class UnitTestTool {
 			androidDevice.setProductId("zzbao-t981");
 			androidDevice.setRoProductModel("T981");
 			androidDevice.setVids(new String[] { "1782", "18D1" });
-			addTestCase(androidDevice);
+			if (hasMethod(productIdToMethodName(androidDevice.getProductId()))) {
+				updateTestCase(androidDevice);
+			} else {
+				addTestCase(androidDevice);
+			}
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -113,11 +119,11 @@ public class UnitTestTool {
 
 		// update of the compilation unit
 		this.icomilationUnit.getBuffer().setContents(newSource);
-		
-		  // Commit changes
+
+		// Commit changes
 		icomilationUnit.commitWorkingCopy(false, null);
-	    
-	    // Destroy working copy
+
+		// Destroy working copy
 		icomilationUnit.discardWorkingCopy();
 
 	}
@@ -211,8 +217,58 @@ public class UnitTestTool {
 		block.statements().add(setVidExpressionStatement);
 	}
 
-	private void updateTestCase(AndroidDevice androidDevice) {
+	private void updateTestCase(AndroidDevice androidDevice) throws JavaModelException, MalformedTreeException, BadLocationException {
+		ASTParser parser = ASTParser.newParser(AST.JLS4);
+		parser.setSource(this.icomilationUnit);
 
+		CompilationUnit compilationUnit = (CompilationUnit) parser
+				.createAST(null);
+		// start record of the modifications
+		compilationUnit.recordModifications();
+		// modify the AST
+		TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
+				.types().get(0);
+
+		AST ast = compilationUnit.getAST();
+		MethodDeclaration[] methods = typeDeclaration.getMethods();
+		MethodDeclaration methodDeclaration = getMethodByName(methods,
+				productIdToMethodName(androidDevice.getProductId()));
+		
+		for (String vid : androidDevice.getVids()) {
+			addTestCaseByVid(ast, methodDeclaration.getBody(), vid, androidDevice);
+		}
+
+		// get the current document source
+		final Document document = new Document(this.icomilationUnit.getSource());
+		// computation of the text edits
+		TextEdit edits = compilationUnit.rewrite(document, this.icomilationUnit
+				.getJavaProject().getOptions(true));
+
+		// computation of the new source code
+		edits.apply(document);
+		String newSource = document.get();
+
+		// update of the compilation unit
+		this.icomilationUnit.getBuffer().setContents(newSource);
+
+		// Commit changes
+		icomilationUnit.commitWorkingCopy(false, null);
+
+		// Destroy working copy
+		icomilationUnit.discardWorkingCopy();
+
+	}
+
+	private MethodDeclaration getMethodByName(MethodDeclaration[] methods,
+			String methodName) {
+		MethodDeclaration theMethod = null;
+		for (MethodDeclaration method : methods) {
+			if (method.getName().toString().equals(methodName)) {
+				theMethod = method;
+				break;
+			}
+		}
+		return theMethod;
 	}
 
 	private boolean hasMethod(String methodName) throws IOException {
