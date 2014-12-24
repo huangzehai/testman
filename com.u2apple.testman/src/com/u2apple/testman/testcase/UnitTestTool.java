@@ -1,8 +1,10 @@
 package com.u2apple.testman.testcase;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.List;
 
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.dom.AST;
@@ -16,7 +18,6 @@ import org.eclipse.jdt.core.dom.MarkerAnnotation;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
-import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
@@ -30,12 +31,17 @@ import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.text.edits.TextEdit;
 
 import com.u2apple.testman.model.AndroidDevice;
+import com.u2apple.testman.util.RefectUtils;
 
 public class UnitTestTool {
 	/**
 	 * This ICompilationUnit is a working copy.
 	 */
-	ICompilationUnit icomilationUnit;
+	private ICompilationUnit icomilationUnit;
+
+	private static final List<String> EXCLUDED_FIELDS = Arrays
+			.asList(new String[] { "vids", "vid", "productId",
+					"returnProductId" });
 
 	public UnitTestTool(ICompilationUnit icomilationUnit) {
 		this.icomilationUnit = icomilationUnit;
@@ -47,10 +53,11 @@ public class UnitTestTool {
 			androidDevice.setProductId("zzbao-t98100000");
 			androidDevice.setRoProductModel("T981");
 			androidDevice.setVids(new String[] { "1782", "18D1" });
+			androidDevice.setRoProductBrand("zzbao");
 			if (hasMethod(productIdToMethodName(androidDevice.getProductId()))) {
 				updateTestCase(androidDevice);
 			} else {
-				addTestCaseWithComment(androidDevice);
+				addTestCase(androidDevice);
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -67,138 +74,6 @@ public class UnitTestTool {
 		}
 	}
 
-	// add a blank line before a statement
-	private void addComment() throws MalformedTreeException,
-			BadLocationException, CoreException {
-		ASTParser parser = ASTParser.newParser(AST.JLS4);
-		parser.setSource(this.icomilationUnit);
-		CompilationUnit astRoot = (CompilationUnit) parser.createAST(null);
-		// create a ASTRewrite
-		AST ast = astRoot.getAST();
-		ASTRewrite rewriter = ASTRewrite.create(ast);
-		// for getting insertion position
-		TypeDeclaration typeDecl = (TypeDeclaration) astRoot.types().get(0);
-		MethodDeclaration methodDecl = typeDecl.getMethods()[0];
-		Block block = methodDecl.getBody();
-		ListRewrite listRewrite = rewriter.getListRewrite(block,
-				Block.STATEMENTS_PROPERTY);
-		Statement placeHolder = (Statement) rewriter.createStringPlaceholder(
-				"//mycomment", ASTNode.EMPTY_STATEMENT);
-		listRewrite.insertFirst(placeHolder, null);
-		TextEdit edits = rewriter.rewriteAST();
-		// apply the text edits to the compilation unit
-		Document document = new Document(this.icomilationUnit.getSource());
-		edits.apply(document);
-		// this is the code for adding statements
-		this.icomilationUnit.getBuffer().setContents(document.get());
-		// Commit changes
-		icomilationUnit.commitWorkingCopy(false, null);
-		// Destroy working copy
-		icomilationUnit.discardWorkingCopy();
-	}
-
-	// add a blank line before a statement
-	private void renameClass() throws MalformedTreeException,
-			BadLocationException, CoreException {
-
-		String source = this.icomilationUnit.getSource();
-		Document document = new Document(source);
-
-		// creation of DOM/AST from a ICompilationUnit
-		ASTParser parser = ASTParser.newParser(AST.JLS4);
-		parser.setSource(this.icomilationUnit);
-		CompilationUnit astRoot = (CompilationUnit) parser.createAST(null);
-		// creation of ASTRewrite
-		ASTRewrite rewrite = ASTRewrite.create(astRoot.getAST());
-
-		// description of the change
-		SimpleName oldName = ((TypeDeclaration) astRoot.types().get(0))
-				.getName();
-		SimpleName newName = astRoot.getAST().newSimpleName("Y");
-		rewrite.replace(oldName, newName, null);
-
-		// computation of the text edits
-		TextEdit edits = rewrite.rewriteAST(document, this.icomilationUnit
-				.getJavaProject().getOptions(true));
-
-		// computation of the new source code
-		edits.apply(document);
-		String newSource = document.get();
-
-		// update of the compilation unit
-		this.icomilationUnit.getBuffer().setContents(newSource);
-		// Commit changes
-		icomilationUnit.commitWorkingCopy(false, null);
-		// Destroy working copy
-		icomilationUnit.discardWorkingCopy();
-	}
-
-	@Deprecated
-	@SuppressWarnings("unchecked")
-	private void addTestCase(AndroidDevice androidDevice) throws IOException,
-			JavaModelException, MalformedTreeException, BadLocationException {
-		// String source = readFile(SRC);
-		// Document document = new Document(source);
-		// creation of DOM/AST from a ICompilationUnit
-		ASTParser parser = ASTParser.newParser(AST.JLS4);
-		parser.setSource(this.icomilationUnit);
-
-		CompilationUnit compilationUnit = (CompilationUnit) parser
-				.createAST(null);
-		// start record of the modifications
-		compilationUnit.recordModifications();
-		// modify the AST
-		TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
-				.types().get(0);
-
-		AST ast = compilationUnit.getAST();
-
-		// List<TypeDeclaration> types = astRoot.types();
-
-		MethodDeclaration methodDeclaration = ast.newMethodDeclaration();
-		// Add jUnit test annotation.
-		MarkerAnnotation testAnnotation = ast.newMarkerAnnotation();
-		testAnnotation.setTypeName(ast.newSimpleName("Test"));
-		methodDeclaration.modifiers().add(testAnnotation);
-		// Add public modifier.
-		methodDeclaration.modifiers().add(
-				ast.newModifier(ModifierKeyword.PUBLIC_KEYWORD));
-		// Set method name.
-		methodDeclaration.setName(ast
-				.newSimpleName(productIdToMethodName(androidDevice
-						.getProductId())));
-
-		// Method body.
-		Block block = ast.newBlock();
-		methodDeclaration.setBody(block);
-		typeDeclaration.bodyDeclarations().add(methodDeclaration);
-
-		for (String vid : androidDevice.getVids()) {
-			// TODO
-			// addTestCaseByVid(ast, block, vid, androidDevice);
-		}
-
-		// get the current document source
-		final Document document = new Document(this.icomilationUnit.getSource());
-		// computation of the text edits
-		TextEdit edits = compilationUnit.rewrite(document, this.icomilationUnit
-				.getJavaProject().getOptions(true));
-
-		// computation of the new source code
-		edits.apply(document);
-		String newSource = document.get();
-
-		// update of the compilation unit
-		this.icomilationUnit.getBuffer().setContents(newSource);
-
-		// Commit changes
-		icomilationUnit.commitWorkingCopy(false, null);
-
-		// Destroy working copy
-		icomilationUnit.discardWorkingCopy();
-
-	}
-
 	/**
 	 * Add test case method using ASTRewrite.
 	 * 
@@ -209,9 +84,8 @@ public class UnitTestTool {
 	 * @throws BadLocationException
 	 */
 	@SuppressWarnings("deprecation")
-	private void addTestCaseWithComment(AndroidDevice androidDevice)
-			throws IOException, JavaModelException, MalformedTreeException,
-			BadLocationException {
+	private void addTestCase(AndroidDevice androidDevice) throws IOException,
+			JavaModelException, MalformedTreeException, BadLocationException {
 		ASTParser parser = ASTParser.newParser(AST.JLS4);
 		parser.setSource(this.icomilationUnit);
 
@@ -336,8 +210,10 @@ public class UnitTestTool {
 		listRewrite.insertLast(setVidExpressionStatement, null);
 
 		// setRoProductModel method invocation.
-		addMethodInvocation(ast, block, deviceParamName, "setRoProductModel",
-				device.getRoProductModel(), listRewrite);
+		// addMethodInvocation(ast, block, deviceParamName, "setRoProductModel",
+		// device.getRoProductModel(), listRewrite);
+
+		conditionFields(ast, block, device, listRewrite, deviceParamName);
 
 		// findProductId method invocation.
 		VariableDeclarationFragment productIdVariableDeclarationFragment = ast
@@ -384,6 +260,30 @@ public class UnitTestTool {
 				ast.newExpressionStatement(assertMethodInvocation), null);
 	}
 
+	private void conditionFields(AST ast, Block block, AndroidDevice device,
+			ListRewrite listRewrite, String deviceParamName) {
+		for (Field field : device.getClass().getDeclaredFields()) {
+			// Exclude fields.
+			if (!EXCLUDED_FIELDS.contains(field.getName())) {
+				try {
+					field.setAccessible(true);
+					Object fieldValue = field.get(device);
+					if (fieldValue != null) {
+						addMethodInvocation(ast, block, deviceParamName,
+								RefectUtils.setterName(field.getName()),
+								fieldValue.toString(), listRewrite);
+					}
+				} catch (IllegalArgumentException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
 	@SuppressWarnings("unchecked")
 	private void addMethodInvocation(AST ast, Block block, String object,
 			String methodName, String argument, ListRewrite listRewrite) {
@@ -400,6 +300,7 @@ public class UnitTestTool {
 		listRewrite.insertLast(expressionStatement, null);
 	}
 
+	@SuppressWarnings("deprecation")
 	private void updateTestCase(AndroidDevice androidDevice)
 			throws JavaModelException, MalformedTreeException,
 			BadLocationException {
@@ -479,6 +380,7 @@ public class UnitTestTool {
 		return theMethod;
 	}
 
+	@SuppressWarnings("deprecation")
 	private boolean hasMethod(String methodName) throws IOException {
 		ASTParser parser = ASTParser.newParser(AST.JLS4);
 		parser.setSource(this.icomilationUnit);
