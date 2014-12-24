@@ -42,29 +42,20 @@ public class UnitTestTool {
 	}
 
 	public void generateTestCase() {
-
 		try {
-			// addTestCase();
-			// boolean hasMethod = hasMethod("samsung-t2556test");
-			// System.out.println(hasMethod);
-			// AndroidDevice androidDevice = new AndroidDevice();
-			// androidDevice.setProductId("zzbao-t981");
-			// androidDevice.setRoProductModel("T981");
-			// androidDevice.setVids(new String[] { "1782", "18D1" });
-			// if
-			// (hasMethod(productIdToMethodName(androidDevice.getProductId())))
-			// {
-			// updateTestCase(androidDevice);
-			// } else {
-			// addTestCase(androidDevice);
-			// }
-			addComment();
-		}
-		// catch (IOException e) {
-		// // TODO Auto-generated catch block
-		// e.printStackTrace();
-		// }
-		catch (JavaModelException e) {
+			AndroidDevice androidDevice = new AndroidDevice();
+			androidDevice.setProductId("zzbao-t98100000");
+			androidDevice.setRoProductModel("T981");
+			androidDevice.setVids(new String[] { "1782", "18D1" });
+			if (hasMethod(productIdToMethodName(androidDevice.getProductId()))) {
+				updateTestCase(androidDevice);
+			} else {
+				addTestCaseWithComment(androidDevice);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JavaModelException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (MalformedTreeException e) {
@@ -73,11 +64,7 @@ public class UnitTestTool {
 		} catch (BadLocationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (CoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
-
 	}
 
 	// add a blank line before a statement
@@ -146,6 +133,7 @@ public class UnitTestTool {
 		icomilationUnit.discardWorkingCopy();
 	}
 
+	@Deprecated
 	@SuppressWarnings("unchecked")
 	private void addTestCase(AndroidDevice androidDevice) throws IOException,
 			JavaModelException, MalformedTreeException, BadLocationException {
@@ -186,7 +174,8 @@ public class UnitTestTool {
 		typeDeclaration.bodyDeclarations().add(methodDeclaration);
 
 		for (String vid : androidDevice.getVids()) {
-			addTestCaseByVid(ast, block, vid, androidDevice);
+			// TODO
+			// addTestCaseByVid(ast, block, vid, androidDevice);
 		}
 
 		// get the current document source
@@ -210,11 +199,116 @@ public class UnitTestTool {
 
 	}
 
+	/**
+	 * Add test case method using ASTRewrite.
+	 * 
+	 * @param androidDevice
+	 * @throws IOException
+	 * @throws JavaModelException
+	 * @throws MalformedTreeException
+	 * @throws BadLocationException
+	 */
+	@SuppressWarnings("deprecation")
+	private void addTestCaseWithComment(AndroidDevice androidDevice)
+			throws IOException, JavaModelException, MalformedTreeException,
+			BadLocationException {
+		ASTParser parser = ASTParser.newParser(AST.JLS4);
+		parser.setSource(this.icomilationUnit);
+
+		CompilationUnit compilationUnit = (CompilationUnit) parser
+				.createAST(null);
+
+		// Get the first class.
+		TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
+				.types().get(0);
+
+		AST ast = compilationUnit.getAST();
+		// creation of ASTRewrite
+		ASTRewrite rewrite = ASTRewrite.create(ast);
+
+		MethodDeclaration methodDeclaration = createMethodDeclaration(
+				androidDevice, ast, rewrite);
+
+		// Insert methodDeclaration.
+		ListRewrite listRewrite = rewrite.getListRewrite(typeDeclaration,
+				TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
+		listRewrite.insertLast(methodDeclaration, null);
+
+		// Get the current document source.
+		final Document document = new Document(this.icomilationUnit.getSource());
+		TextEdit edits = rewrite.rewriteAST(document, this.icomilationUnit
+				.getJavaProject().getOptions(true));
+
+		// computation of the new source code
+		edits.apply(document);
+		String newSource = document.get();
+		// update of the compilation unit
+		this.icomilationUnit.getBuffer().setContents(newSource);
+		// Commit changes
+		icomilationUnit.commitWorkingCopy(false, null);
+		// Destroy working copy
+		icomilationUnit.discardWorkingCopy();
+	}
+
 	@SuppressWarnings("unchecked")
+	private MethodDeclaration createMethodDeclaration(
+			AndroidDevice androidDevice, AST ast, ASTRewrite astRewrite) {
+		// Construct method declaration.
+		MethodDeclaration methodDeclaration = ast.newMethodDeclaration();
+		// Add jUnit test annotation.
+		MarkerAnnotation testAnnotation = ast.newMarkerAnnotation();
+		testAnnotation.setTypeName(ast.newSimpleName("Test"));
+		methodDeclaration.modifiers().add(testAnnotation);
+		// Add public modifier.
+		methodDeclaration.modifiers().add(
+				ast.newModifier(ModifierKeyword.PUBLIC_KEYWORD));
+		// Set method name.
+		methodDeclaration.setName(ast
+				.newSimpleName(productIdToMethodName(androidDevice
+						.getProductId())));
+
+		// Method body.
+		Block block = ast.newBlock();
+		methodDeclaration.setBody(block);
+
+		int index = 0;
+		// Test each VID.
+		for (String vid : androidDevice.getVids()) {
+			StringBuilder commentBuilder = new StringBuilder();
+			commentBuilder.append("//When VID is ").append(vid).append(",");
+			commentBuilder.append(" and ro.product.model is ")
+					.append(androidDevice.getRoProductModel()).append(".");
+			// Add comment.
+			ListRewrite listRewrite = astRewrite.getListRewrite(block,
+					Block.STATEMENTS_PROPERTY);
+			Statement placeHolder = (Statement) astRewrite
+					.createStringPlaceholder(commentBuilder.toString(),
+							ASTNode.EMPTY_STATEMENT);
+			listRewrite.insertLast(placeHolder, null);
+
+			// Add test case per VID.
+			addTestCaseByVid(ast, block, vid, androidDevice, astRewrite);
+
+			// Add a blank line.
+			if (index < androidDevice.getVids().length - 1) {
+
+				Statement stringPlaceHolder = (Statement) astRewrite
+						.createStringPlaceholder("", ASTNode.EMPTY_STATEMENT);
+				listRewrite.insertLast(stringPlaceHolder, null);
+				index++;
+			}
+		}
+		return methodDeclaration;
+	}
+
+	@SuppressWarnings({ "unchecked", "static-access" })
 	private void addTestCaseByVid(AST ast, Block block, String aVid,
-			AndroidDevice device) {
-		String deviceParamName = new String("paramForVid" + aVid);
-		String productIdParamName = new String("productIdFor" + aVid);
+			AndroidDevice device, ASTRewrite astRewrite) {
+		// Add comment.
+		ListRewrite listRewrite = astRewrite.getListRewrite(block,
+				block.STATEMENTS_PROPERTY);
+		String deviceParamName = new String("paramOfVid" + aVid);
+		String productIdParamName = new String("productIdOf" + aVid);
 
 		// Initialize DeviceInitParam.
 		VariableDeclarationFragment vdf = ast.newVariableDeclarationFragment();
@@ -225,7 +319,8 @@ public class UnitTestTool {
 		VariableDeclarationStatement vds = ast
 				.newVariableDeclarationStatement(vdf);
 		vds.setType(ast.newSimpleType(ast.newSimpleName("DeviceInitParam")));
-		block.statements().add(vds);
+		// block.statements().add(vds);
+		listRewrite.insertLast(vds, null);
 
 		// setVid method invocation.
 		MethodInvocation setVidMethodInvocation = ast.newMethodInvocation();
@@ -237,11 +332,12 @@ public class UnitTestTool {
 		setVidMethodInvocation.arguments().add(vid);
 		ExpressionStatement setVidExpressionStatement = ast
 				.newExpressionStatement(setVidMethodInvocation);
-		block.statements().add(setVidExpressionStatement);
+		// block.statements().add(setVidExpressionStatement);
+		listRewrite.insertLast(setVidExpressionStatement, null);
 
 		// setRoProductModel method invocation.
 		addMethodInvocation(ast, block, deviceParamName, "setRoProductModel",
-				device.getRoProductModel());
+				device.getRoProductModel(), listRewrite);
 
 		// findProductId method invocation.
 		VariableDeclarationFragment productIdVariableDeclarationFragment = ast
@@ -262,7 +358,8 @@ public class UnitTestTool {
 				.newVariableDeclarationStatement(productIdVariableDeclarationFragment);
 		findProductIdVariableDeclarationStatement.setType(ast.newSimpleType(ast
 				.newSimpleName("String")));
-		block.statements().add(findProductIdVariableDeclarationStatement);
+		// block.statements().add(findProductIdVariableDeclarationStatement);
+		listRewrite.insertLast(findProductIdVariableDeclarationStatement, null);
 
 		// normalize method invocation.
 		MethodInvocation mi = ast.newMethodInvocation();
@@ -270,7 +367,8 @@ public class UnitTestTool {
 		mi.setExpression(ast.newSimpleName(deviceParamName));
 		mi.setName(ast.newSimpleName("normalize"));
 		ExpressionStatement es = ast.newExpressionStatement(mi);
-		block.statements().add(es);
+		// block.statements().add(es);
+		listRewrite.insertLast(es, null);
 
 		// Assert method invocation.
 		MethodInvocation assertMethodInvocation = ast.newMethodInvocation();
@@ -280,23 +378,26 @@ public class UnitTestTool {
 		expectedProductId.setLiteralValue(device.getProductId());
 		assertMethodInvocation.arguments().add(expectedProductId);
 		assertMethodInvocation.arguments().add(ast.newName(productIdParamName));
-		block.statements().add(
-				ast.newExpressionStatement(assertMethodInvocation));
+		// block.statements().add(
+		// ast.newExpressionStatement(assertMethodInvocation));
+		listRewrite.insertLast(
+				ast.newExpressionStatement(assertMethodInvocation), null);
 	}
 
 	@SuppressWarnings("unchecked")
 	private void addMethodInvocation(AST ast, Block block, String object,
-			String methodName, String argument) {
-		MethodInvocation setVidMethodInvocation = ast.newMethodInvocation();
-		setVidMethodInvocation = ast.newMethodInvocation();
-		setVidMethodInvocation.setExpression(ast.newSimpleName(object));
-		setVidMethodInvocation.setName(ast.newSimpleName(methodName));
+			String methodName, String argument, ListRewrite listRewrite) {
+		MethodInvocation methodInvocation = ast.newMethodInvocation();
+		methodInvocation = ast.newMethodInvocation();
+		methodInvocation.setExpression(ast.newSimpleName(object));
+		methodInvocation.setName(ast.newSimpleName(methodName));
 		StringLiteral vid = ast.newStringLiteral();
 		vid.setLiteralValue(argument);
-		setVidMethodInvocation.arguments().add(vid);
-		ExpressionStatement setVidExpressionStatement = ast
-				.newExpressionStatement(setVidMethodInvocation);
-		block.statements().add(setVidExpressionStatement);
+		methodInvocation.arguments().add(vid);
+		ExpressionStatement expressionStatement = ast
+				.newExpressionStatement(methodInvocation);
+		// block.statements().add(setVidExpressionStatement);
+		listRewrite.insertLast(expressionStatement, null);
 	}
 
 	private void updateTestCase(AndroidDevice androidDevice)
@@ -308,25 +409,47 @@ public class UnitTestTool {
 		CompilationUnit compilationUnit = (CompilationUnit) parser
 				.createAST(null);
 		// start record of the modifications
-		compilationUnit.recordModifications();
+		// compilationUnit.recordModifications();
 		// modify the AST
 		TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
 				.types().get(0);
 
 		AST ast = compilationUnit.getAST();
+		// creation of ASTRewrite
+		ASTRewrite rewrite = ASTRewrite.create(ast);
 		MethodDeclaration[] methods = typeDeclaration.getMethods();
 		MethodDeclaration methodDeclaration = getMethodByName(methods,
 				productIdToMethodName(androidDevice.getProductId()));
 
 		for (String vid : androidDevice.getVids()) {
+			ListRewrite listRewrite = rewrite.getListRewrite(
+					methodDeclaration.getBody(), Block.STATEMENTS_PROPERTY);
+			// Add a blank line.
+			Statement stringPlaceHolder = (Statement) rewrite
+					.createStringPlaceholder("", ASTNode.EMPTY_STATEMENT);
+			listRewrite.insertLast(stringPlaceHolder, null);
+			// Building comment.
+			StringBuilder commentBuilder = new StringBuilder();
+			commentBuilder.append("//When VID is ").append(vid).append(",");
+			commentBuilder.append(" and ro.product.model is ")
+					.append(androidDevice.getRoProductModel()).append(".");
+			// Add comment.
+
+			Statement placeHolder = (Statement) rewrite
+					.createStringPlaceholder(commentBuilder.toString(),
+							ASTNode.EMPTY_STATEMENT);
+			listRewrite.insertLast(placeHolder, null);
 			addTestCaseByVid(ast, methodDeclaration.getBody(), vid,
-					androidDevice);
+					androidDevice, rewrite);
 		}
 
 		// get the current document source
 		final Document document = new Document(this.icomilationUnit.getSource());
 		// computation of the text edits
-		TextEdit edits = compilationUnit.rewrite(document, this.icomilationUnit
+		// TextEdit edits = compilationUnit.rewrite(document,
+		// this.icomilationUnit
+		// .getJavaProject().getOptions(true));
+		TextEdit edits = rewrite.rewriteAST(document, this.icomilationUnit
 				.getJavaProject().getOptions(true));
 
 		// computation of the new source code
