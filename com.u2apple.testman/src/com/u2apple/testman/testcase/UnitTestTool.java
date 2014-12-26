@@ -69,18 +69,14 @@ public class UnitTestTool {
 				} else {
 					addTestCase(androidDevice);
 				}
-				
+
 			}
 			// Commit changes
 			icomilationUnit.commitWorkingCopy(false, null);
 			// Destroy working copy
 			icomilationUnit.discardWorkingCopy();
-			Files.write(path, "".getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
-			// AndroidDevice androidDevice = new AndroidDevice();
-			// androidDevice.setProductId("zzbao-t98100000");
-			// androidDevice.setRoProductModel("T981");
-			// androidDevice.setVids(new String[] { "1782", "18D1" });
-			// androidDevice.setRoProductBrand("zzbao");
+			Files.write(path, "".getBytes(),
+					StandardOpenOption.TRUNCATE_EXISTING);
 		}
 
 	}
@@ -130,9 +126,9 @@ public class UnitTestTool {
 		// update of the compilation unit
 		this.icomilationUnit.getBuffer().setContents(newSource);
 		// Commit changes
-//		icomilationUnit.commitWorkingCopy(false, null);
+		// icomilationUnit.commitWorkingCopy(false, null);
 		// Destroy working copy
-//		icomilationUnit.discardWorkingCopy();
+		// icomilationUnit.discardWorkingCopy();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -226,6 +222,15 @@ public class UnitTestTool {
 
 		conditionFields(ast, block, device, listRewrite, deviceParamName);
 
+		// normalize method invocation.
+		MethodInvocation mi = ast.newMethodInvocation();
+		mi = ast.newMethodInvocation();
+		mi.setExpression(ast.newSimpleName(deviceParamName));
+		mi.setName(ast.newSimpleName("normalize"));
+		ExpressionStatement es = ast.newExpressionStatement(mi);
+		// block.statements().add(es);
+		listRewrite.insertLast(es, null);
+
 		// findProductId method invocation.
 		VariableDeclarationFragment productIdVariableDeclarationFragment = ast
 				.newVariableDeclarationFragment();
@@ -247,15 +252,6 @@ public class UnitTestTool {
 				.newSimpleName("String")));
 		// block.statements().add(findProductIdVariableDeclarationStatement);
 		listRewrite.insertLast(findProductIdVariableDeclarationStatement, null);
-
-		// normalize method invocation.
-		MethodInvocation mi = ast.newMethodInvocation();
-		mi = ast.newMethodInvocation();
-		mi.setExpression(ast.newSimpleName(deviceParamName));
-		mi.setName(ast.newSimpleName("normalize"));
-		ExpressionStatement es = ast.newExpressionStatement(mi);
-		// block.statements().add(es);
-		listRewrite.insertLast(es, null);
 
 		// Assert method invocation.
 		MethodInvocation assertMethodInvocation = ast.newMethodInvocation();
@@ -372,10 +368,10 @@ public class UnitTestTool {
 		this.icomilationUnit.getBuffer().setContents(newSource);
 
 		// Commit changes
-//		icomilationUnit.commitWorkingCopy(false, null);
+		// icomilationUnit.commitWorkingCopy(false, null);
 
 		// Destroy working copy
-//		icomilationUnit.discardWorkingCopy();
+		// icomilationUnit.discardWorkingCopy();
 
 	}
 
