@@ -2,6 +2,10 @@ package com.u2apple.testman.testcase;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,6 +34,8 @@ import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.text.edits.TextEdit;
 
+import com.google.gson.Gson;
+import com.u2apple.testman.constant.Constants;
 import com.u2apple.testman.model.AndroidDevice;
 import com.u2apple.testman.util.RefectUtils;
 
@@ -47,31 +53,36 @@ public class UnitTestTool {
 		this.icomilationUnit = icomilationUnit;
 	}
 
-	public void generateTestCase() {
-		try {
-			AndroidDevice androidDevice = new AndroidDevice();
-			androidDevice.setProductId("zzbao-t98100000");
-			androidDevice.setRoProductModel("T981");
-			androidDevice.setVids(new String[] { "1782", "18D1" });
-			androidDevice.setRoProductBrand("zzbao");
-			if (hasMethod(productIdToMethodName(androidDevice.getProductId()))) {
-				updateTestCase(androidDevice);
-			} else {
-				addTestCase(androidDevice);
+	public void generateTestCase() throws IOException, JavaModelException,
+			MalformedTreeException, BadLocationException {
+		Gson gson = new Gson();
+		Path path = Paths.get(System.getProperty("user.home"),
+				Constants.ANDROID_DEVICES_JSON_FILE);
+		byte[] bytes = Files.readAllBytes(path);
+		AndroidDevice[] androidDevices = gson.fromJson(new String(bytes),
+				AndroidDevice[].class);
+		if (androidDevices != null) {
+			for (AndroidDevice androidDevice : androidDevices) {
+				if (hasMethod(productIdToMethodName(androidDevice
+						.getProductId()))) {
+					updateTestCase(androidDevice);
+				} else {
+					addTestCase(androidDevice);
+				}
+				
 			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JavaModelException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (MalformedTreeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			// Commit changes
+			icomilationUnit.commitWorkingCopy(false, null);
+			// Destroy working copy
+			icomilationUnit.discardWorkingCopy();
+			Files.write(path, "".getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
+			// AndroidDevice androidDevice = new AndroidDevice();
+			// androidDevice.setProductId("zzbao-t98100000");
+			// androidDevice.setRoProductModel("T981");
+			// androidDevice.setVids(new String[] { "1782", "18D1" });
+			// androidDevice.setRoProductBrand("zzbao");
 		}
+
 	}
 
 	/**
@@ -119,9 +130,9 @@ public class UnitTestTool {
 		// update of the compilation unit
 		this.icomilationUnit.getBuffer().setContents(newSource);
 		// Commit changes
-		icomilationUnit.commitWorkingCopy(false, null);
+//		icomilationUnit.commitWorkingCopy(false, null);
 		// Destroy working copy
-		icomilationUnit.discardWorkingCopy();
+//		icomilationUnit.discardWorkingCopy();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -361,10 +372,10 @@ public class UnitTestTool {
 		this.icomilationUnit.getBuffer().setContents(newSource);
 
 		// Commit changes
-		icomilationUnit.commitWorkingCopy(false, null);
+//		icomilationUnit.commitWorkingCopy(false, null);
 
 		// Destroy working copy
-		icomilationUnit.discardWorkingCopy();
+//		icomilationUnit.discardWorkingCopy();
 
 	}
 

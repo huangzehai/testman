@@ -1,13 +1,17 @@
 package com.u2apple.testman.actions;
 
+import java.io.IOException;
+
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.ui.IWorkingCopyManager;
 import org.eclipse.jdt.ui.JavaUI;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.IWorkbenchPage;
@@ -15,6 +19,7 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchWindowActionDelegate;
 import org.eclipse.ui.PlatformUI;
 
+import com.u2apple.testman.constant.Constants;
 import com.u2apple.testman.testcase.UnitTestTool;
 
 /**
@@ -64,34 +69,41 @@ public class TestCaseAction implements IWorkbenchWindowActionDelegate {
 					try {
 						workingCopy = icompilationUnit.getWorkingCopy(null);
 					} catch (JavaModelException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						MessageDialog.openInformation(window.getShell(),
+								Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
 					}
 
 				} else {
 					MessageDialog
-							.openInformation(window.getShell(), "Testman",
+							.openInformation(window.getShell(),
+									Constants.MESSAGE_DIALOG_TITLE,
 									"Select a Java Test case file and then generate test case.");
 
 				}
 
 			} else {
 				MessageDialog
-						.openInformation(window.getShell(), "Testman",
+						.openInformation(window.getShell(),
+								Constants.MESSAGE_DIALOG_TITLE,
 								"Select a Java Test case file and then generate test case.");
 			}
 		} else {
 			try {
 				workingCopy = unit.getWorkingCopy(null);
 			} catch (JavaModelException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				MessageDialog.openInformation(window.getShell(),
+						Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
 			}
 		}
 
 		if (workingCopy != null) {
 			UnitTestTool tool = new UnitTestTool(workingCopy);
-			tool.generateTestCase();
+			try {
+				tool.generateTestCase();
+			} catch (IOException | JavaModelException | MalformedTreeException | BadLocationException e) {
+				MessageDialog.openInformation(window.getShell(),
+						Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
+			}
 		}
 
 	}
