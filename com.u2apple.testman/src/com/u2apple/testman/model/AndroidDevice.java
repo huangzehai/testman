@@ -14,7 +14,7 @@ public class AndroidDevice {
     private String roProductDevice;
     private String roProductBoard;
     private String roProductManufacturer;
-    private String roHardWare;
+    private String roHardware;
     private String roBuildDisplayId;
     private String customProps;
     private String androidVersion;
@@ -175,12 +175,12 @@ public class AndroidDevice {
         this.roProductManufacturer = roProductManufacturer;
     }
 
-    public String getRoHardWare() {
-        return roHardWare;
+    public String getRoHardware() {
+        return roHardware;
     }
 
-    public void setRoHardWare(String roHardWare) {
-        this.roHardWare = roHardWare;
+    public void setRoHardware(String roHardWare) {
+        this.roHardware = roHardWare;
     }
 
     public String getRoBuildDisplayId() {
@@ -236,7 +236,7 @@ public class AndroidDevice {
         return "AndroidDevice [macAddress=" + macAddress + ", vid=" + vid + ", pid=" + pid + ", prot=" + prot + ", sn="
                 + sn + ", adbDevice=" + adbDevice + ", roProductModel=" + roProductModel + ", roProductBrand="
                 + roProductBrand + ", roProductDevice=" + roProductDevice + ", roProductBoard=" + roProductBoard
-                + ", roProductManufacturer=" + roProductManufacturer + ", roHardWare=" + roHardWare
+                + ", roProductManufacturer=" + roProductManufacturer + ", roHardWare=" + roHardware
                 + ", roBuildDisplayId=" + roBuildDisplayId + ", customProps=" + customProps + ", androidVersion="
                 + androidVersion + ", createdAt=" + createdAt + ", identified=" + identified + ", productId="
                 + productId + ", resolution=" + resolution + ", partitions=" + partitions + ", cpuHardware="
