@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.JavaModelException;
@@ -406,8 +407,11 @@ public class UnitTestTool {
 	private static String productIdToMethodName(String productId) {
 		if (productId == null) {
 			throw new IllegalArgumentException("product id is null.");
+		} else if (Pattern.matches("^\\d.*$", productId)) {
+			return "test_" + productId.replace("-", "_");
+		} else {
+			return productId.replace("-", "_");
 		}
-		return productId.replace("-", "_");
 	}
 
 }
