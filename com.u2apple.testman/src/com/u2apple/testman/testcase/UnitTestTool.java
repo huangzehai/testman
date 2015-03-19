@@ -189,8 +189,15 @@ public class UnitTestTool {
 		// Add comment.
 		ListRewrite listRewrite = astRewrite.getListRewrite(block,
 				block.STATEMENTS_PROPERTY);
-		String deviceParamName = new String("paramOfVid" + aVid);
-		String productIdParamName = new String("productIdOf" + aVid);
+		StringBuilder deviceParamBuilder = new StringBuilder();
+		deviceParamBuilder.append("param_").append(aVid).append("_")
+				.append(format(device.getRoProductModel()));
+		String deviceParamName = deviceParamBuilder.toString();
+		
+		StringBuilder productIdParamBuilder = new StringBuilder();
+		productIdParamBuilder.append("productId_").append(aVid).append("_")
+				.append(format(device.getRoProductModel()));
+		String productIdParamName = productIdParamBuilder.toString();
 
 		// Initialize DeviceInitParam.
 		VariableDeclarationFragment vdf = ast.newVariableDeclarationFragment();
@@ -266,6 +273,10 @@ public class UnitTestTool {
 		// ast.newExpressionStatement(assertMethodInvocation));
 		listRewrite.insertLast(
 				ast.newExpressionStatement(assertMethodInvocation), null);
+	}
+
+	private String format(String model) {
+		return model == null ? model : model.replaceAll("[-_\\s]", "");
 	}
 
 	private void conditionFields(AST ast, Block block, AndroidDevice device,
