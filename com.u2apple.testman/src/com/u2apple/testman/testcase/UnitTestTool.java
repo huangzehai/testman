@@ -276,7 +276,7 @@ public class UnitTestTool {
 	}
 
 	private String format(String model) {
-		return model == null ? model : model.replaceAll("[-_\\s().']", "").replaceAll("\\+", "plus");
+		return model == null ? model : model.replaceAll("\\+", "plus").replaceAll("[^a-zA-Z0-9]", "");
 	}
 
 	private void conditionFields(AST ast, Block block, AndroidDevice device,
