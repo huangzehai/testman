@@ -6,7 +6,7 @@ public final class StringUtils {
 
 	}
 
-	public static String capitalize(String text) {
+	public static String toCapital(String text) {
 		return Character.toUpperCase(text.charAt(0)) + text.substring(1);
 	}
 

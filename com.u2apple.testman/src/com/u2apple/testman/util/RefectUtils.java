@@ -7,7 +7,7 @@ public final class RefectUtils {
 	}
 	
 	public static String setterName(String fieldName){
-		return "set"+StringUtils.capitalize(fieldName);
+		return "set"+StringUtils.toCapital(fieldName);
 	}
 
 }

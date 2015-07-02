@@ -2,25 +2,14 @@ package com.u2apple.testman.actions;
 
 import java.io.IOException;
 
-import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.jdt.ui.IWorkingCopyManager;
-import org.eclipse.jdt.ui.JavaUI;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.viewers.ISelection;
-import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.text.edits.MalformedTreeException;
-import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.ISelectionService;
-import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchWindowActionDelegate;
-import org.eclipse.ui.PlatformUI;
 
 import com.u2apple.testman.constant.Constants;
-import com.u2apple.testman.testcase.UnitTestTool;
+import com.u2apple.testman.core.UnitTestTool;
 
 /**
  * Our sample action implements workbench action delegate. The action proxy will
@@ -47,65 +36,81 @@ public class TestCaseAction implements IWorkbenchWindowActionDelegate {
 	 */
 	@Override
 	public void run(IAction action) {
-		IWorkbenchPage activePage = PlatformUI.getWorkbench()
-				.getActiveWorkbenchWindow().getActivePage();
-		IEditorPart activeEditor = activePage.getActiveEditor();
-		ICompilationUnit unit = null;
-		if (activeEditor != null && activeEditor.getEditorInput() != null) {
-			IWorkingCopyManager manager = JavaUI.getWorkingCopyManager();
-			unit = manager.getWorkingCopy(activeEditor.getEditorInput());
-		}
+		// IWorkbenchPage activePage = PlatformUI.getWorkbench()
+		// .getActiveWorkbenchWindow().getActivePage();
+		// IEditorPart activeEditor = activePage.getActiveEditor();
+		// ICompilationUnit unit = null;
+		// if (activeEditor != null && activeEditor.getEditorInput() != null) {
+		// IWorkingCopyManager manager = JavaUI.getWorkingCopyManager();
+		// unit = manager.getWorkingCopy(activeEditor.getEditorInput());
+		// }
+		//
+		// ICompilationUnit workingCopy = null;
+		// if (unit == null) {
+		// ISelectionService service = window.getSelectionService();
+		// ISelection selection = service.getSelection();
+		// if (selection instanceof IStructuredSelection) {
+		// Object element = ((IStructuredSelection) selection)
+		// .getFirstElement();
+		// if (element instanceof ICompilationUnit) {
+		// ICompilationUnit icompilationUnit = (ICompilationUnit) element;
+		// // boolean isWorkingCopy = icompilationUnit.isWorkingCopy();
+		// try {
+		// workingCopy = icompilationUnit.getWorkingCopy(null);
+		// } catch (JavaModelException e) {
+		// MessageDialog.openInformation(window.getShell(),
+		// Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
+		// }
+		//
+		// } else {
+		// MessageDialog
+		// .openInformation(window.getShell(),
+		// Constants.MESSAGE_DIALOG_TITLE,
+		// "Select a Java Test case file and then generate test case.");
+		//
+		// }
+		//
+		// } else {
+		// MessageDialog
+		// .openInformation(window.getShell(),
+		// Constants.MESSAGE_DIALOG_TITLE,
+		// "Select a Java Test case file and then generate test case.");
+		// }
+		// } else {
+		// try {
+		// workingCopy = unit.getWorkingCopy(null);
+		// } catch (JavaModelException e) {
+		// MessageDialog.openInformation(window.getShell(),
+		// Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
+		// }
+		// }
+		//
+		// if (workingCopy != null) {
+		// UnitTestTool tool = new UnitTestTool(workingCopy);
+		// try {
+		// tool.generateTestCase();
+		// } catch (IOException | JavaModelException | MalformedTreeException |
+		// BadLocationException e) {
+		// MessageDialog.openInformation(window.getShell(),
+		// Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
+		// }
+		// }
 
-		ICompilationUnit workingCopy = null;
-		if (unit == null) {
-			ISelectionService service = window.getSelectionService();
-			ISelection selection = service.getSelection();
-			if (selection instanceof IStructuredSelection) {
-				Object element = ((IStructuredSelection) selection)
-						.getFirstElement();
-				if (element instanceof ICompilationUnit) {
-					ICompilationUnit icompilationUnit = (ICompilationUnit) element;
-					// boolean isWorkingCopy = icompilationUnit.isWorkingCopy();
-					try {
-						workingCopy = icompilationUnit.getWorkingCopy(null);
-					} catch (JavaModelException e) {
-						MessageDialog.openInformation(window.getShell(),
-								Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
-					}
-
-				} else {
-					MessageDialog
-							.openInformation(window.getShell(),
-									Constants.MESSAGE_DIALOG_TITLE,
-									"Select a Java Test case file and then generate test case.");
-
-				}
-
-			} else {
-				MessageDialog
-						.openInformation(window.getShell(),
-								Constants.MESSAGE_DIALOG_TITLE,
-								"Select a Java Test case file and then generate test case.");
-			}
-		} else {
-			try {
-				workingCopy = unit.getWorkingCopy(null);
-			} catch (JavaModelException e) {
+		UnitTestTool tool = new UnitTestTool();
+		try {
+			boolean isSuccessful=tool.generateTestCases();
+			if(isSuccessful){
 				MessageDialog.openInformation(window.getShell(),
-						Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
-			}
-		}
-
-		if (workingCopy != null) {
-			UnitTestTool tool = new UnitTestTool(workingCopy);
-			try {
-				tool.generateTestCase();
-			} catch (IOException | JavaModelException | MalformedTreeException | BadLocationException e) {
+						Constants.MESSAGE_DIALOG_TITLE, Constants.SUCCESS_MESSAGE);
+			}else{
 				MessageDialog.openInformation(window.getShell(),
-						Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
+						Constants.MESSAGE_DIALOG_TITLE, Constants.FAIL_MESSAGE);
 			}
+			
+		} catch (IOException e) {
+			MessageDialog.openInformation(window.getShell(),
+					Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
 		}
-
 	}
 
 	/**
