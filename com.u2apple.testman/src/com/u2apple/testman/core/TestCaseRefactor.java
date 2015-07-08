@@ -23,10 +23,16 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
+import org.eclipse.jdt.ui.JavaUI;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.text.edits.TextEdit;
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.PlatformUI;
 
 import com.u2apple.testman.util.StringUtils;
 
@@ -34,7 +40,7 @@ public class TestCaseRefactor {
 	private static final int TEST_CASE_COUNT = 4;
 
 	public void extractMethodByBrand() throws JavaModelException,
-			MalformedTreeException, BadLocationException {
+			MalformedTreeException, BadLocationException, PartInitException {
 		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 		IProject project = root.getProject("shuame");
 		IJavaProject javaProject = JavaCore.create(project);
@@ -46,6 +52,7 @@ public class TestCaseRefactor {
 
 		ICompilationUnit icu = packageFragment
 				.getCompilationUnit("DeviceStoreTest.java");
+		IEditorPart javaEditor = JavaUI.openInEditor(icu);
 		ASTParser parser = ASTParser.newParser(AST.JLS4);
 		parser.setSource(icu);
 
@@ -92,6 +99,15 @@ public class TestCaseRefactor {
 
 		// update of the compilation unit
 		icu.getBuffer().setContents(newSource);
+		// Commit changes
+		icu.commitWorkingCopy(false, null);
+		// Destroy working copy
+		icu.discardWorkingCopy();
+
+		IWorkbenchWindow window = PlatformUI.getWorkbench()
+				.getActiveWorkbenchWindow();
+		IWorkbenchPage page = window.getActivePage();
+		page.closeEditor(javaEditor, true);
 	}
 
 	private Map<String, List<MethodDeclaration>> methodsGroupByBrand(

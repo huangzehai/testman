@@ -8,6 +8,7 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchWindowActionDelegate;
+import org.eclipse.ui.PartInitException;
 
 import com.u2apple.testman.core.TestCaseRefactor;
 
@@ -16,14 +17,15 @@ public class ExtractTestCaseAction implements IWorkbenchWindowActionDelegate {
 
 	@Override
 	public void run(IAction action) {
-		TestCaseRefactor testTool = new TestCaseRefactor();
+		TestCaseRefactor testCaseRefactor = new TestCaseRefactor();
 		try {
-			testTool.extractMethodByBrand();
-			MessageDialog.openInformation(window.getShell(), "Extract Method",
-					"Extract method is successful.");
+			testCaseRefactor.extractMethodByBrand();
+			MessageDialog.openInformation(window.getShell(), "Extract test case",
+					"Extract test case is successful.");
 		} catch (JavaModelException | MalformedTreeException
-				| BadLocationException e) {
-			e.printStackTrace();
+				| BadLocationException | PartInitException e) {
+			MessageDialog.openInformation(window.getShell(), "Extract test case",
+					"Extract test case is failed.");
 		}
 
 	}

@@ -27,7 +27,7 @@
          <action
                class="com.u2apple.testman.actions.ExtractTestCaseAction"
                definitionId="extractTestCase"
-               icon="icons/sample.gif"
+               icon="icons/extract.png"
                id="com.u2apple.testman.action1"
                label="&amp;Extract Test Case"
                menubarPath="testMenu/sampleGroup"
