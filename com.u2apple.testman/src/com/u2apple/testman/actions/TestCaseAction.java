@@ -36,76 +36,17 @@ public class TestCaseAction implements IWorkbenchWindowActionDelegate {
 	 */
 	@Override
 	public void run(IAction action) {
-		// IWorkbenchPage activePage = PlatformUI.getWorkbench()
-		// .getActiveWorkbenchWindow().getActivePage();
-		// IEditorPart activeEditor = activePage.getActiveEditor();
-		// ICompilationUnit unit = null;
-		// if (activeEditor != null && activeEditor.getEditorInput() != null) {
-		// IWorkingCopyManager manager = JavaUI.getWorkingCopyManager();
-		// unit = manager.getWorkingCopy(activeEditor.getEditorInput());
-		// }
-		//
-		// ICompilationUnit workingCopy = null;
-		// if (unit == null) {
-		// ISelectionService service = window.getSelectionService();
-		// ISelection selection = service.getSelection();
-		// if (selection instanceof IStructuredSelection) {
-		// Object element = ((IStructuredSelection) selection)
-		// .getFirstElement();
-		// if (element instanceof ICompilationUnit) {
-		// ICompilationUnit icompilationUnit = (ICompilationUnit) element;
-		// // boolean isWorkingCopy = icompilationUnit.isWorkingCopy();
-		// try {
-		// workingCopy = icompilationUnit.getWorkingCopy(null);
-		// } catch (JavaModelException e) {
-		// MessageDialog.openInformation(window.getShell(),
-		// Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
-		// }
-		//
-		// } else {
-		// MessageDialog
-		// .openInformation(window.getShell(),
-		// Constants.MESSAGE_DIALOG_TITLE,
-		// "Select a Java Test case file and then generate test case.");
-		//
-		// }
-		//
-		// } else {
-		// MessageDialog
-		// .openInformation(window.getShell(),
-		// Constants.MESSAGE_DIALOG_TITLE,
-		// "Select a Java Test case file and then generate test case.");
-		// }
-		// } else {
-		// try {
-		// workingCopy = unit.getWorkingCopy(null);
-		// } catch (JavaModelException e) {
-		// MessageDialog.openInformation(window.getShell(),
-		// Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
-		// }
-		// }
-		//
-		// if (workingCopy != null) {
-		// UnitTestTool tool = new UnitTestTool(workingCopy);
-		// try {
-		// tool.generateTestCase();
-		// } catch (IOException | JavaModelException | MalformedTreeException |
-		// BadLocationException e) {
-		// MessageDialog.openInformation(window.getShell(),
-		// Constants.MESSAGE_DIALOG_TITLE, e.getMessage());
-		// }
-		// }
-
 		UnitTestTool tool = new UnitTestTool();
 		try {
 			boolean isSuccessful=tool.generateTestCases();
+			String message;
 			if(isSuccessful){
-				MessageDialog.openInformation(window.getShell(),
-						Constants.MESSAGE_DIALOG_TITLE, Constants.SUCCESS_MESSAGE);
+				message=Constants.SUCCESS_MESSAGE;
 			}else{
-				MessageDialog.openInformation(window.getShell(),
-						Constants.MESSAGE_DIALOG_TITLE, Constants.FAIL_MESSAGE);
+				message=Constants.FAIL_MESSAGE;
 			}
+			MessageDialog.openInformation(window.getShell(),
+					Constants.MESSAGE_DIALOG_TITLE, message);
 			
 		} catch (IOException e) {
 			MessageDialog.openInformation(window.getShell(),

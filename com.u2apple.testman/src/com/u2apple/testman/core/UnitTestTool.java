@@ -8,7 +8,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
@@ -61,54 +64,103 @@ public class UnitTestTool {
 			.asList(new String[] { "vids", "vid", "productId",
 					"returnProductId" });
 
-	public UnitTestTool() {
-
-	}
-
 	public boolean generateTestCases() throws IOException {
 		AndroidDevice[] androidDevices = loadAndroidDevices();
 		List<AndroidDevice> fails = new ArrayList<>();
 		if (androidDevices != null) {
-			for (AndroidDevice androidDevice : androidDevices) {
+			Map<String, List<AndroidDevice>> devices = groupByBrand(androidDevices);
+			for (Entry<String, List<AndroidDevice>> entry : devices.entrySet()) {
 				try {
-					generateTestCase(androidDevice);
+					generateTestCases(entry.getKey(), entry.getValue());
 				} catch (PartInitException | JavaModelException
 						| MalformedTreeException | BadLocationException e) {
-					fails.add(androidDevice);
+					fails.addAll(entry.getValue());
 				}
 			}
-
-			String text;
-			if (fails.isEmpty()) {
-				text = "";
-			} else {
-				Gson gson = new Gson();
-				text = gson.toJson(fails);
-			}
-			Path path = Paths.get(System.getProperty("user.home"),
-					Constants.ANDROID_DEVICES_JSON_FILE);
-			Files.write(path, text.getBytes(),
-					StandardOpenOption.TRUNCATE_EXISTING);
+			recordFails(fails);
 		}
 		return fails.isEmpty();
 	}
 
-	private void generateTestCase(AndroidDevice androidDevice)
-			throws JavaModelException, MalformedTreeException, IOException,
-			BadLocationException, PartInitException {
-		String brand = AndroidDeviceUtils.getBrandByProductId(androidDevice
-				.getProductId());
+	private void recordFails(List<AndroidDevice> fails) throws IOException {
+		String text;
+		if (fails.isEmpty()) {
+			text = "";
+		} else {
+			text = new Gson().toJson(fails);
+		}
+		Path path = Paths.get(System.getProperty("user.home"),
+				Constants.ANDROID_DEVICES_JSON_FILE);
+		Files.write(path, text.getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
+	}
+
+	private Map<String, List<AndroidDevice>> groupByBrand(
+			AndroidDevice[] androidDevices) {
+		Map<String, List<AndroidDevice>> devices = new HashMap<>();
+		if (androidDevices != null) {
+			for (AndroidDevice androidDevice : androidDevices) {
+				String brand = AndroidDeviceUtils
+						.getBrandByProductId(androidDevice.getProductId());
+				if (devices.containsKey(brand)) {
+					devices.get(brand).add(androidDevice);
+				} else {
+					List<AndroidDevice> list = new ArrayList<>();
+					list.add(androidDevice);
+					devices.put(brand, list);
+				}
+			}
+		}
+		return devices;
+	}
+
+	private void generateTestCases(String brand,
+			List<AndroidDevice> androidDevices) throws JavaModelException,
+			MalformedTreeException, IOException, BadLocationException,
+			PartInitException {
 		ICompilationUnit icu = getIComilationUnitByBrand(brand);
 		IWorkbenchWindow window = PlatformUI.getWorkbench()
 				.getActiveWorkbenchWindow();
 		IWorkbenchPage page = window.getActivePage();
 		IEditorPart javaEditor = JavaUI.openInEditor(icu);
-		if (hasMethod(icu,
-				AndroidDeviceUtils.getMethodName(androidDevice.getProductId()))) {
-			updateTestCase(icu, androidDevice);
-		} else {
-			addTestCase(icu, androidDevice);
+
+		//
+		ASTParser parser = ASTParser.newParser(AST.JLS4);
+		parser.setSource(icu);
+
+		CompilationUnit compilationUnit = (CompilationUnit) parser
+				.createAST(null);
+
+		// Get the first class.
+		TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
+				.types().get(0);
+
+		AST ast = compilationUnit.getAST();
+		// creation of ASTRewrite
+		ASTRewrite rewrite = ASTRewrite.create(ast);
+		//
+		for (AndroidDevice androidDevice : androidDevices) {
+			if (hasMethod(icu, AndroidDeviceUtils.getMethodName(androidDevice
+					.getProductId()))) {
+				updateTestCase(rewrite, ast, typeDeclaration, androidDevice);
+			} else {
+				addTestCase(rewrite, ast, typeDeclaration, androidDevice);
+			}
 		}
+
+		// Get the current document source.
+		final Document document = new Document(icu.getSource());
+		TextEdit edits = rewrite.rewriteAST(document, icu.getJavaProject()
+				.getOptions(true));
+
+		// computation of the new source code
+		edits.apply(document);
+		String newSource = document.get();
+		// update of the compilation unit
+		icu.getBuffer().setContents(newSource);
+		// Commit changes
+		icu.commitWorkingCopy(false, null);
+		// Destroy working copy
+		icu.discardWorkingCopy();
 		page.closeEditor(javaEditor, true);
 	}
 
@@ -139,34 +191,6 @@ public class UnitTestTool {
 		return icu;
 	}
 
-	// public void generateTestCase() throws IOException, JavaModelException,
-	// MalformedTreeException, BadLocationException {
-	// Gson gson = new Gson();
-	// Path path = Paths.get(System.getProperty("user.home"),
-	// Constants.ANDROID_DEVICES_JSON_FILE);
-	// byte[] bytes = Files.readAllBytes(path);
-	// AndroidDevice[] androidDevices = gson.fromJson(new String(bytes),
-	// AndroidDevice[].class);
-	// if (androidDevices != null) {
-	// for (AndroidDevice androidDevice : androidDevices) {
-	// if (hasMethod(productIdToMethodName(androidDevice
-	// .getProductId()))) {
-	// updateTestCase(androidDevice);
-	// } else {
-	// addTestCase(androidDevice);
-	// }
-	//
-	// }
-	// // Commit changes
-	// icomilationUnit.commitWorkingCopy(false, null);
-	// // Destroy working copy
-	// icomilationUnit.discardWorkingCopy();
-	// Files.write(path, "".getBytes(),
-	// StandardOpenOption.TRUNCATE_EXISTING);
-	// }
-
-	// }
-
 	/**
 	 * Add test case method using ASTRewrite.
 	 * 
@@ -177,22 +201,23 @@ public class UnitTestTool {
 	 * @throws BadLocationException
 	 */
 	@SuppressWarnings("deprecation")
-	private void addTestCase(ICompilationUnit iComilationUnit,
-			AndroidDevice androidDevice) throws IOException,
-			JavaModelException, MalformedTreeException, BadLocationException {
-		ASTParser parser = ASTParser.newParser(AST.JLS4);
-		parser.setSource(iComilationUnit);
-
-		CompilationUnit compilationUnit = (CompilationUnit) parser
-				.createAST(null);
-
-		// Get the first class.
-		TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
-				.types().get(0);
-
-		AST ast = compilationUnit.getAST();
-		// creation of ASTRewrite
-		ASTRewrite rewrite = ASTRewrite.create(ast);
+	private void addTestCase(ASTRewrite rewrite, AST ast,
+			TypeDeclaration typeDeclaration, AndroidDevice androidDevice)
+			throws IOException, JavaModelException, MalformedTreeException,
+			BadLocationException {
+		// ASTParser parser = ASTParser.newParser(AST.JLS4);
+		// parser.setSource(iComilationUnit);
+		//
+		// CompilationUnit compilationUnit = (CompilationUnit) parser
+		// .createAST(null);
+		//
+		// // Get the first class.
+		// TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
+		// .types().get(0);
+		//
+		// AST ast = compilationUnit.getAST();
+		// // creation of ASTRewrite
+		// ASTRewrite rewrite = ASTRewrite.create(ast);
 
 		MethodDeclaration methodDeclaration = createMethodDeclaration(
 				androidDevice, ast, rewrite);
@@ -203,19 +228,19 @@ public class UnitTestTool {
 		listRewrite.insertLast(methodDeclaration, null);
 
 		// Get the current document source.
-		final Document document = new Document(iComilationUnit.getSource());
-		TextEdit edits = rewrite.rewriteAST(document, iComilationUnit
-				.getJavaProject().getOptions(true));
+		// final Document document = new Document(iComilationUnit.getSource());
+		// TextEdit edits = rewrite.rewriteAST(document, iComilationUnit
+		// .getJavaProject().getOptions(true));
 
 		// computation of the new source code
-		edits.apply(document);
-		String newSource = document.get();
+		// edits.apply(document);
+		// String newSource = document.get();
 		// update of the compilation unit
-		iComilationUnit.getBuffer().setContents(newSource);
+		// iComilationUnit.getBuffer().setContents(newSource);
 		// Commit changes
-		iComilationUnit.commitWorkingCopy(false, null);
+		// iComilationUnit.commitWorkingCopy(false, null);
 		// Destroy working copy
-		iComilationUnit.discardWorkingCopy();
+		// iComilationUnit.discardWorkingCopy();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -401,23 +426,24 @@ public class UnitTestTool {
 	}
 
 	@SuppressWarnings("deprecation")
-	private void updateTestCase(ICompilationUnit iComilationUnit,
-			AndroidDevice androidDevice) throws JavaModelException,
-			MalformedTreeException, BadLocationException {
-		ASTParser parser = ASTParser.newParser(AST.JLS4);
-		parser.setSource(iComilationUnit);
-
-		CompilationUnit compilationUnit = (CompilationUnit) parser
-				.createAST(null);
+	private void updateTestCase(ASTRewrite rewrite, AST ast,
+			TypeDeclaration typeDeclaration, AndroidDevice androidDevice)
+			throws JavaModelException, MalformedTreeException,
+			BadLocationException {
+		// ASTParser parser = ASTParser.newParser(AST.JLS4);
+		// parser.setSource(iComilationUnit);
+		//
+		// CompilationUnit compilationUnit = (CompilationUnit) parser
+		// .createAST(null);
 		// start record of the modifications
 		// compilationUnit.recordModifications();
 		// modify the AST
-		TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
-				.types().get(0);
-
-		AST ast = compilationUnit.getAST();
+		// TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
+		// .types().get(0);
+		//
+		// AST ast = compilationUnit.getAST();
 		// creation of ASTRewrite
-		ASTRewrite rewrite = ASTRewrite.create(ast);
+		// ASTRewrite rewrite = ASTRewrite.create(ast);
 		MethodDeclaration[] methods = typeDeclaration.getMethods();
 		MethodDeclaration methodDeclaration = getMethodByName(methods,
 				AndroidDeviceUtils.getMethodName(androidDevice.getProductId()));
@@ -445,25 +471,25 @@ public class UnitTestTool {
 		}
 
 		// get the current document source
-		final Document document = new Document(iComilationUnit.getSource());
+		// final Document document = new Document(iComilationUnit.getSource());
 		// computation of the text edits
 		// TextEdit edits = compilationUnit.rewrite(document,
 		// this.icomilationUnit
 		// .getJavaProject().getOptions(true));
-		TextEdit edits = rewrite.rewriteAST(document, iComilationUnit
-				.getJavaProject().getOptions(true));
+		// TextEdit edits = rewrite.rewriteAST(document, iComilationUnit
+		// .getJavaProject().getOptions(true));
 
 		// computation of the new source code
-		edits.apply(document);
-		String newSource = document.get();
+		// edits.apply(document);
+		// String newSource = document.get();
 
 		// update of the compilation unit
-		iComilationUnit.getBuffer().setContents(newSource);
+		// iComilationUnit.getBuffer().setContents(newSource);
 
 		// Commit changes
-		iComilationUnit.commitWorkingCopy(false, null);
+		// iComilationUnit.commitWorkingCopy(false, null);
 		// Destroy working copy
-		iComilationUnit.discardWorkingCopy();
+		// iComilationUnit.discardWorkingCopy();
 	}
 
 	private MethodDeclaration getMethodByName(MethodDeclaration[] methods,
