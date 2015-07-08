@@ -9,7 +9,7 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchWindowActionDelegate;
 
 import com.u2apple.testman.constant.Constants;
-import com.u2apple.testman.core.UnitTestTool;
+import com.u2apple.testman.core.TestCaseGenerator;
 
 /**
  * Our sample action implements workbench action delegate. The action proxy will
@@ -36,7 +36,7 @@ public class TestCaseAction implements IWorkbenchWindowActionDelegate {
 	 */
 	@Override
 	public void run(IAction action) {
-		UnitTestTool tool = new UnitTestTool();
+		TestCaseGenerator tool = new TestCaseGenerator();
 		try {
 			boolean isSuccessful=tool.generateTestCases();
 			String message;

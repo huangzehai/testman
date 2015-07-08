@@ -24,6 +24,16 @@
                toolbarPath="sampleGroup"
                id="com.u2apple.testman.actions.TestCaseAction">
          </action>
+         <action
+               class="com.u2apple.testman.actions.ExtractTestCaseAction"
+               definitionId="extractTestCase"
+               icon="icons/sample.gif"
+               id="com.u2apple.testman.action1"
+               label="&amp;Extract Test Case"
+               menubarPath="testMenu/sampleGroup"
+               style="push"
+               tooltip="Extract Test Case by brand">
+         </action>
       </actionSet>
    </extension>
 

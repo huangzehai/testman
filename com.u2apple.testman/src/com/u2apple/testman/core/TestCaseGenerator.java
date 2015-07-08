@@ -58,7 +58,7 @@ import com.u2apple.testman.model.AndroidDevice;
 import com.u2apple.testman.util.AndroidDeviceUtils;
 import com.u2apple.testman.util.RefectUtils;
 
-public class UnitTestTool {
+public class TestCaseGenerator {
 
 	private static final List<String> EXCLUDED_FIELDS = Arrays
 			.asList(new String[] { "vids", "vid", "productId",
