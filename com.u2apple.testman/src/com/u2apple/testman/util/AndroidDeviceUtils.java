@@ -16,9 +16,9 @@ public class AndroidDeviceUtils {
 		if (productId == null) {
 			throw new IllegalArgumentException("product id is null.");
 		} else if (Pattern.matches("^\\d.*$", productId)) {
-			return "test_" + productId.replace("-", "_");
+			return "test_" + productId.replaceAll("\\s", "").replace("-", "_");
 		} else {
-			return productId.replace("-", "_");
+			return productId.replaceAll("\\s","").replace("-", "_");
 		}
 	}
 	
