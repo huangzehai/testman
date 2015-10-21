@@ -67,11 +67,11 @@ public class TestCaseGenerator {
 	public boolean generateTestCases() throws IOException {
 		AndroidDevice[] androidDevices = loadAndroidDevices();
 		List<AndroidDevice> fails = new ArrayList<>();
-		if (androidDevices != null) {
+		if (androidDevices != null && androidDevices.length > 0) {
 			Map<String, List<AndroidDevice>> devices = groupByBrand(androidDevices);
 			for (Entry<String, List<AndroidDevice>> entry : devices.entrySet()) {
 				try {
-					generateTestCases(entry.getKey(), entry.getValue());
+					generateTestCasesByBrand(entry.getKey(), entry.getValue());
 				} catch (PartInitException | JavaModelException
 						| MalformedTreeException | BadLocationException e) {
 					fails.addAll(entry.getValue());
@@ -113,7 +113,17 @@ public class TestCaseGenerator {
 		return devices;
 	}
 
-	private void generateTestCases(String brand,
+	/**
+	 * 一个品牌的单元测试在同一个文件,给指定品牌的所有的Android Device生成单元测试.
+	 * @param brand
+	 * @param androidDevices
+	 * @throws JavaModelException
+	 * @throws MalformedTreeException
+	 * @throws IOException
+	 * @throws BadLocationException
+	 * @throws PartInitException
+	 */
+	private void generateTestCasesByBrand(String brand,
 			List<AndroidDevice> androidDevices) throws JavaModelException,
 			MalformedTreeException, IOException, BadLocationException,
 			PartInitException {
@@ -124,7 +134,7 @@ public class TestCaseGenerator {
 		IEditorPart javaEditor = JavaUI.openInEditor(icu);
 
 		//
-		ASTParser parser = ASTParser.newParser(AST.JLS4);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setSource(icu);
 
 		CompilationUnit compilationUnit = (CompilationUnit) parser
@@ -161,9 +171,15 @@ public class TestCaseGenerator {
 		icu.commitWorkingCopy(false, null);
 		// Destroy working copy
 		icu.discardWorkingCopy();
+		icu.close();
 		page.closeEditor(javaEditor, true);
 	}
 
+	/**
+	 * Load test case meta.
+	 * @return
+	 * @throws IOException
+	 */
 	private AndroidDevice[] loadAndroidDevices() throws IOException {
 		Gson gson = new Gson();
 		Path path = Paths.get(System.getProperty("user.home"),
@@ -200,47 +216,16 @@ public class TestCaseGenerator {
 	 * @throws MalformedTreeException
 	 * @throws BadLocationException
 	 */
-	@SuppressWarnings("deprecation")
 	private void addTestCase(ASTRewrite rewrite, AST ast,
 			TypeDeclaration typeDeclaration, AndroidDevice androidDevice)
 			throws IOException, JavaModelException, MalformedTreeException,
 			BadLocationException {
-		// ASTParser parser = ASTParser.newParser(AST.JLS4);
-		// parser.setSource(iComilationUnit);
-		//
-		// CompilationUnit compilationUnit = (CompilationUnit) parser
-		// .createAST(null);
-		//
-		// // Get the first class.
-		// TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
-		// .types().get(0);
-		//
-		// AST ast = compilationUnit.getAST();
-		// // creation of ASTRewrite
-		// ASTRewrite rewrite = ASTRewrite.create(ast);
-
 		MethodDeclaration methodDeclaration = createMethodDeclaration(
 				androidDevice, ast, rewrite);
-
 		// Insert methodDeclaration.
 		ListRewrite listRewrite = rewrite.getListRewrite(typeDeclaration,
 				TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
 		listRewrite.insertLast(methodDeclaration, null);
-
-		// Get the current document source.
-		// final Document document = new Document(iComilationUnit.getSource());
-		// TextEdit edits = rewrite.rewriteAST(document, iComilationUnit
-		// .getJavaProject().getOptions(true));
-
-		// computation of the new source code
-		// edits.apply(document);
-		// String newSource = document.get();
-		// update of the compilation unit
-		// iComilationUnit.getBuffer().setContents(newSource);
-		// Commit changes
-		// iComilationUnit.commitWorkingCopy(false, null);
-		// Destroy working copy
-		// iComilationUnit.discardWorkingCopy();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -425,25 +410,10 @@ public class TestCaseGenerator {
 		listRewrite.insertLast(expressionStatement, null);
 	}
 
-	@SuppressWarnings("deprecation")
 	private void updateTestCase(ASTRewrite rewrite, AST ast,
 			TypeDeclaration typeDeclaration, AndroidDevice androidDevice)
 			throws JavaModelException, MalformedTreeException,
 			BadLocationException {
-		// ASTParser parser = ASTParser.newParser(AST.JLS4);
-		// parser.setSource(iComilationUnit);
-		//
-		// CompilationUnit compilationUnit = (CompilationUnit) parser
-		// .createAST(null);
-		// start record of the modifications
-		// compilationUnit.recordModifications();
-		// modify the AST
-		// TypeDeclaration typeDeclaration = (TypeDeclaration) compilationUnit
-		// .types().get(0);
-		//
-		// AST ast = compilationUnit.getAST();
-		// creation of ASTRewrite
-		// ASTRewrite rewrite = ASTRewrite.create(ast);
 		MethodDeclaration[] methods = typeDeclaration.getMethods();
 		MethodDeclaration methodDeclaration = getMethodByName(methods,
 				AndroidDeviceUtils.getMethodName(androidDevice.getProductId()));
@@ -469,27 +439,6 @@ public class TestCaseGenerator {
 			addTestCaseByVid(ast, methodDeclaration.getBody(), vid,
 					androidDevice, rewrite);
 		}
-
-		// get the current document source
-		// final Document document = new Document(iComilationUnit.getSource());
-		// computation of the text edits
-		// TextEdit edits = compilationUnit.rewrite(document,
-		// this.icomilationUnit
-		// .getJavaProject().getOptions(true));
-		// TextEdit edits = rewrite.rewriteAST(document, iComilationUnit
-		// .getJavaProject().getOptions(true));
-
-		// computation of the new source code
-		// edits.apply(document);
-		// String newSource = document.get();
-
-		// update of the compilation unit
-		// iComilationUnit.getBuffer().setContents(newSource);
-
-		// Commit changes
-		// iComilationUnit.commitWorkingCopy(false, null);
-		// Destroy working copy
-		// iComilationUnit.discardWorkingCopy();
 	}
 
 	private MethodDeclaration getMethodByName(MethodDeclaration[] methods,
